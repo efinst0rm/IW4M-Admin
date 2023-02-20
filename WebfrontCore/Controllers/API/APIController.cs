@@ -38,7 +38,7 @@ namespace WebfrontCore.Controllers.API
                     CurrentPlayers = server.GetClientsAsList().Count,
                     Map = server.CurrentMap,
                     GameMode = server.Gametype,
-                    server.Port,
+                    Port = server.ListenPort,
                     Game = server.GameName.ToString(),
                     Players = server.GetClientsAsList()
                         .Select(player => new
@@ -74,7 +74,7 @@ namespace WebfrontCore.Controllers.API
             return serverToRestart != null ?
             (IActionResult)Json(new
             {
-                port = serverToRestart.Port
+                port = serverToRestart.ListenPort
             }) :
             Unauthorized();
         }

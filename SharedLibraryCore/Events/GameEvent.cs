@@ -5,10 +5,11 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Serilog.Context;
 using SharedLibraryCore.Database.Models;
+using SharedLibraryCore.Events;
 
 namespace SharedLibraryCore
 {
-    public class GameEvent
+    public class GameEvent : CoreEvent
     {
         public enum EventFailReason
         {
@@ -133,6 +134,8 @@ namespace SharedLibraryCore
             ///     connection was restored to a server (the server began responding again)
             /// </summary>
             ConnectionRestored,
+            
+            SayTeam = 99,
 
             // events "generated" by clients  
             /// <summary>
@@ -246,7 +249,7 @@ namespace SharedLibraryCore
             ///     team info printed out by game script
             /// </summary>
             JoinTeam = 304,
-
+            
             /// <summary>
             ///     used for community generated plugin events
             /// </summary>

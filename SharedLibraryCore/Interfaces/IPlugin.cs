@@ -2,11 +2,9 @@
 
 namespace SharedLibraryCore.Interfaces
 {
-    public interface IPlugin
+    public interface IPlugin : IModularAssembly
     {
-        string Name { get; }
-        float Version { get; }
-        string Author { get; }
+        new float Version { get; }
         bool IsParser => false;
         Task OnLoadAsync(IManager manager);
         Task OnUnloadAsync();

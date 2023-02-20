@@ -14,10 +14,13 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Data.Models;
+using IW4MAdmin.Application.Configuration;
 using IW4MAdmin.Application.Extensions;
 using Jint.Runtime.Interop;
 using Microsoft.Extensions.Logging;
 using Serilog.Context;
+using SharedLibraryCore.Commands;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace IW4MAdmin.Application.Misc
@@ -70,7 +73,7 @@ namespace IW4MAdmin.Application.Misc
         }
 
         public async Task Initialize(IManager manager, IScriptCommandFactory scriptCommandFactory,
-            IScriptPluginServiceResolver serviceResolver)
+            IScriptPluginServiceResolver serviceResolver, IConfigurationHandlerV2<ScriptPluginConfiguration> configHandler)
         {
             try
             {
@@ -130,11 +133,18 @@ namespace IW4MAdmin.Application.Misc
                         .AddObjectConverter(new PermissionLevelToStringConverter()));
 
                 _scriptEngine.Execute(script);
+                if (!_scriptEngine.GetValue("init").IsUndefined())
+                {
+                    // this is a v2 plugin and we don't want to try to load it
+                    Watcher.EnableRaisingEvents = false;
+                    Watcher.Dispose();
+                    return;
+                }
                 _scriptEngine.SetValue("_localization", Utilities.CurrentLocalization);
                 _scriptEngine.SetValue("_serviceResolver", serviceResolver);
                 _scriptEngine.SetValue("_lock", _onProcessing);
                 dynamic pluginObject = _scriptEngine.Evaluate("plugin").ToObject();
-
+                
                 Author = pluginObject.author;
                 Name = pluginObject.name;
                 Version = (float)pluginObject.version;
@@ -191,8 +201,7 @@ namespace IW4MAdmin.Application.Misc
 
                 catch (RuntimeBinderException)
                 {
-                    var configWrapper = new ScriptPluginConfigurationWrapper(Name, _scriptEngine);
-                    await configWrapper.InitializeAsync();
+                    var configWrapper = new ScriptPluginConfigurationWrapper(Name, _scriptEngine, configHandler);
 
                     if (!loadComplete)
                     {
@@ -415,10 +424,10 @@ namespace IW4MAdmin.Application.Misc
                 }
 
                 string permission = dynamicCommand.permission;
-                List<Server.Game> supportedGames = null;
+                List<Reference.Game> supportedGames = null;
                 var targetRequired = false;
 
-                var args = new List<(string, bool)>();
+                var args = new List<CommandArgument>();
                 dynamic arguments = null;
 
                 try
@@ -445,7 +454,7 @@ namespace IW4MAdmin.Application.Misc
                 {
                     foreach (var arg in dynamicCommand.arguments)
                     {
-                        args.Add((arg.name, (bool)arg.required));
+                        args.Add(new CommandArgument { Name = arg.name, Required = (bool)arg.required });
                     }
                 }
 
@@ -453,8 +462,8 @@ namespace IW4MAdmin.Application.Misc
                 {
                     foreach (var game in dynamicCommand.supportedGames)
                     {
-                        supportedGames ??= new List<Server.Game>();
-                        supportedGames.Add(Enum.Parse(typeof(Server.Game), game.ToString()));
+                        supportedGames ??= new List<Reference.Game>();
+                        supportedGames.Add(Enum.Parse(typeof(Reference.Game), game.ToString()));
                     }
                 }
                 catch (RuntimeBinderException)
@@ -507,7 +516,7 @@ namespace IW4MAdmin.Application.Misc
                 }
 
                 commandList.Add(scriptCommandFactory.CreateScriptCommand(name, alias, description, permission,
-                    targetRequired, args, Execute, supportedGames?.ToArray()));
+                    targetRequired, args, Execute, supportedGames));
             }
 
             return commandList;

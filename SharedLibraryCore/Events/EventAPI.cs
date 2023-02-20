@@ -42,7 +42,7 @@ namespace SharedLibraryCore.Events
                 OwnerEntity = new EntityInfo
                 {
                     Name = E.Owner.Hostname,
-                    Id = E.Owner.EndPoint
+                    Id = E.Owner.GetIdForServer().GetAwaiter().GetResult()
                 },
                 OriginEntity = E.Origin == null
                     ? null
